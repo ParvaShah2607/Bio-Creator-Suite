@@ -1,0 +1,15 @@
+# robots.txt for biodata-pro.in
+# Allow all search engines to crawl the site
+
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://biodata-pro.in/sitemap.xml
+
+# Disallow common non-content paths
+Disallow: /node_modules/
+Disallow: /server/
+Disallow: /client/
+Disallow: /script/
+Disallow: /.git/

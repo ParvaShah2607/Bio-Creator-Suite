@@ -1,5 +1,5 @@
 /* ============================================
-   BiodataPro - Premium Gen-Z Friendly Styles
+   biodata-pro - Premium Gen-Z Friendly Styles
    Modern, Clean, 2026-Ready Design
    ============================================ */
 
@@ -1307,6 +1307,29 @@ body {
     max-width: 600px;
     width: 100%;
     overflow: hidden;
+    position: relative;
+}
+
+.persistent-watermark {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 100;
+    opacity: 0.9;
+    font-size: 10px;
+    font-weight: 500;
+    color: #666;
+    pointer-events: none;
+    user-select: none;
+    background: rgba(255,255,255,0.92);
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+.persistent-watermark a {
+    color: #0070f3;
+    text-decoration: none;
+    pointer-events: auto;
 }
 
 /* Preview Actions */
@@ -1563,5 +1586,162 @@ body {
     to {
         opacity: 0;
         transform: translateX(-50%) translateY(20px);
+    }
+}
+
+/* ============================================
+   SEO Content Section Styles
+   ============================================ */
+.seo-content {
+    padding: 80px 0;
+    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+}
+
+.seo-article {
+    max-width: 800px;
+    margin: 0 auto;
+    line-height: 1.8;
+    color: #374151;
+}
+
+.seo-main-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 24px;
+    line-height: 1.3;
+    text-align: center;
+}
+
+.seo-intro {
+    font-size: 1.125rem;
+    color: #4b5563;
+    margin-bottom: 40px;
+    text-align: center;
+    padding: 0 20px;
+}
+
+.seo-article h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 40px 0 16px 0;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.seo-article h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #374151;
+    margin: 24px 0 12px 0;
+}
+
+.seo-article p {
+    margin-bottom: 16px;
+    font-size: 1rem;
+}
+
+.seo-list {
+    margin: 16px 0 24px 0;
+    padding-left: 24px;
+}
+
+.seo-list li {
+    margin-bottom: 10px;
+    padding-left: 8px;
+}
+
+.seo-list.numbered {
+    list-style-type: decimal;
+}
+
+.seo-cta-box {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    border-radius: 16px;
+    padding: 40px;
+    text-align: center;
+    margin: 48px 0;
+    color: white;
+}
+
+.seo-cta-box h3 {
+    font-size: 1.5rem;
+    color: white;
+    margin: 0 0 12px 0;
+}
+
+.seo-cta-box p {
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 24px;
+}
+
+.seo-cta-box .btn {
+    background: white;
+    color: #6366f1;
+    font-weight: 600;
+}
+
+.seo-cta-box .btn:hover {
+    background: #f8fafc;
+    transform: translateY(-2px);
+}
+
+.faq-title {
+    margin-top: 48px !important;
+}
+
+.faq-section {
+    margin-top: 24px;
+}
+
+.faq-item {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: box-shadow 0.3s ease;
+}
+
+.faq-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.faq-item h3 {
+    font-size: 1.0625rem;
+    color: #1e293b;
+    margin: 0 0 12px 0;
+}
+
+.faq-item p {
+    color: #6b7280;
+    margin: 0;
+    font-size: 0.9375rem;
+}
+
+@media (max-width: 768px) {
+    .seo-content {
+        padding: 48px 0;
+    }
+    
+    .seo-main-title {
+        font-size: 1.75rem;
+    }
+    
+    .seo-intro {
+        font-size: 1rem;
+    }
+    
+    .seo-article h2 {
+        font-size: 1.25rem;
+    }
+    
+    .seo-cta-box {
+        padding: 28px 20px;
+    }
+    
+    .seo-cta-box h3 {
+        font-size: 1.25rem;
     }
 }

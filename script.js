@@ -1,5 +1,5 @@
 /**
- * BiodataPro - Premium Marriage Biodata Maker
+ * biodata-pro - Premium Marriage Biodata Maker
  * Gen-Z Friendly Templates & Modern UX
  * 2026 Edition
  */
@@ -868,6 +868,12 @@ function renderPreview() {
     
     const data = getFormData();
     paper.innerHTML = templates[selectedTemplate].render(data);
+    
+    // Add persistent watermark at bottom right
+    const watermark = document.createElement('div');
+    watermark.className = 'persistent-watermark';
+    watermark.innerHTML = 'Created by <a href="https://biodata-pro.in" target="_blank" rel="noopener noreferrer">biodata-pro.in</a>';
+    paper.appendChild(watermark);
 }
 
 // ============================================
@@ -1068,10 +1074,38 @@ function handleDownload() {
                     -webkit-print-color-adjust: exact !important;
                     print-color-adjust: exact !important;
                 }
+                
+                /* PDF Container */
+                .pdf-content {
+                    position: relative;
+                    min-height: 100%;
+                }
+                
+                /* Persistent Watermark for PDF */
+                .persistent-watermark {
+                    position: fixed;
+                    right: 12px;
+                    bottom: 12px;
+                    z-index: 100;
+                    opacity: 0.9;
+                    font-size: 10px;
+                    font-weight: 500;
+                    color: #666;
+                    background: rgba(255,255,255,0.92);
+                    padding: 2px 6px;
+                    border-radius: 3px;
+                    white-space: nowrap;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
+                .persistent-watermark a {
+                    color: #0070f3;
+                    text-decoration: none;
+                }
             </style>
         </head>
         <body>
-            ${paper.innerHTML}
+            <div class="pdf-content">${paper.innerHTML}</div>
             <script>
                 // Wait for fonts to load then print
                 document.fonts.ready.then(function() {
@@ -1206,7 +1240,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resizeTimeout = setTimeout(handleGalleryResize, 150);
     });
     
-    console.log('✨ BiodataPro - Premium Marriage Biodata Maker initialized');
+    console.log('✨ biodata-pro - Premium Marriage Biodata Maker initialized');
 });
 
 // Field removed toast notification
