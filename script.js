@@ -874,6 +874,40 @@ function renderPreview() {
     watermark.className = 'persistent-watermark';
     watermark.innerHTML = 'Created by <a href="https://biodata-pro.in" target="_blank" rel="noopener noreferrer">biodata-pro.in</a>';
     paper.appendChild(watermark);
+
+    schedulePreviewScale();
+}
+
+let previewScaleFrame = null;
+
+function schedulePreviewScale() {
+    if (previewScaleFrame) {
+        cancelAnimationFrame(previewScaleFrame);
+    }
+    previewScaleFrame = requestAnimationFrame(applyPreviewScale);
+}
+
+function applyPreviewScale() {
+    previewScaleFrame = null;
+    const wrapper = document.querySelector('.preview-wrapper');
+    const scaleContainer = document.getElementById('previewScale');
+    if (!wrapper || !scaleContainer) return;
+
+    const targetWidth = 600;
+    const availableWidth = wrapper.clientWidth;
+    if (!availableWidth) return;
+
+    const scale = Math.min(1, availableWidth / targetWidth);
+    scaleContainer.style.transformOrigin = 'top center';
+
+    if (scale < 1) {
+        scaleContainer.style.transform = `scale(${scale})`;
+        const scaledHeight = scaleContainer.getBoundingClientRect().height;
+        wrapper.style.minHeight = `${scaledHeight}px`;
+    } else {
+        scaleContainer.style.transform = '';
+        wrapper.style.minHeight = '';
+    }
 }
 
 // ============================================
@@ -1236,6 +1270,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle window resize for gallery scaling
     let resizeTimeout;
     window.addEventListener('resize', () => {
+        schedulePreviewScale();
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(handleGalleryResize, 150);
     });
