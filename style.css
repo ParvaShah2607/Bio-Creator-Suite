@@ -613,6 +613,26 @@ body {
     background: var(--bg-dark);
 }
 
+/* Mobile-only: show creator form above template gallery to reduce scrolling */
+@media (max-width: 768px) {
+    .mobile-reorder-sections {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .mobile-reorder-sections > .creator-section {
+        order: 1;
+    }
+
+    .mobile-reorder-sections > .templates-section {
+        order: 2;
+    }
+
+    .mobile-reorder-sections > .how-it-works {
+        order: 3;
+    }
+}
+
 .template-preview-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -1115,6 +1135,7 @@ body {
     width: 95%;
     max-width: 1000px;
     max-height: 90vh;
+    max-height: 90dvh;
     display: flex;
     flex-direction: column;
     box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
@@ -1241,6 +1262,7 @@ body {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    min-height: 0;
     background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
 }
 
@@ -1252,6 +1274,8 @@ body {
     justify-content: center;
     align-items: flex-start;
     position: relative;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Custom Scrollbar for Preview */
@@ -1340,6 +1364,7 @@ body {
     display: flex;
     justify-content: center;
     gap: 12px;
+    flex-shrink: 0;
 }
 
 .preview-actions .btn {
@@ -1353,44 +1378,92 @@ body {
 
 /* Responsive for Modal */
 @media (max-width: 768px) {
+    .modal {
+        align-items: stretch;       /* ADD — stretch modal to full screen */
+        padding: 0;                 /* ADD — remove any padding */
+    }
+
+    .modal-content {
+        height: 100vh;              /* CHANGE from max-height to height */
+        height: 100dvh;             /* CHANGE — forces exact viewport height */
+        max-height: 100vh;
+        max-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        border-radius: 0;           /* ADD — cleaner full-screen on mobile */
+        overflow: hidden;           /* ADD — clip children */
+    }
+
+    .modal-header {
+        flex-shrink: 0;             /* ADD — header never shrinks */
+    }
+
     .modal-body {
         flex-direction: column;
+        flex: 1;
+        overflow: hidden;
+        min-height: 0;              /* CRITICAL */
     }
-    
+
     .template-sidebar {
+        flex-shrink: 0;             /* ADD */
         width: 100%;
         border-right: none;
         border-bottom: 1px solid var(--border-form);
         padding: 12px;
         max-height: 120px;
     }
-    
+
     .template-thumbs {
         flex-direction: row;
         overflow-x: auto;
         padding-bottom: 8px;
     }
-    
+
     .template-thumb-btn {
         width: 70px;
         flex-shrink: 0;
     }
-    
+
     .sidebar-title {
         display: none;
     }
-    
+
+    .preview-main {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        min-height: 0;              /* CRITICAL */
+        padding-bottom: 110px;      /* ensure content not hidden */
+    }
+
     .preview-wrapper {
+        flex: 0 0 auto;
+        overflow: visible;
         padding: 16px;
+        min-height: 0;              /* CRITICAL */
     }
-    
+
     .preview-actions {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        bottom: env(safe-area-inset-bottom);
+        flex-shrink: 0;
         padding: 12px 16px;
+        background: var(--bg-white, #fff);
+        border-top: 1px solid var(--border-form);
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+        z-index: 4000;
     }
-    
+
     .preview-actions .btn {
         min-width: unset;
         flex: 1;
+        width: 100%;
     }
 }
 
