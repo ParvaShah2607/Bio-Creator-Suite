@@ -60,6 +60,76 @@ const templateBadges = {
 };
 
 // ============================================
+// Tiny Async Helpers
+// ============================================
+const wait = (ms = 0) => new Promise((resolve) => setTimeout(resolve, ms));
+const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
+const HTML2PDF_SOURCES = [
+    'https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
+];
+
+let html2pdfLoaderPromise = null;
+
+function loadExternalScript(src, attrs = {}) {
+    return new Promise((resolve, reject) => {
+        const existing = Array.from(document.scripts).find((script) => script.src === src);
+        if (existing) {
+            existing.addEventListener('load', () => resolve(), { once: true });
+            existing.addEventListener('error', () => reject(new Error(`Failed to load script ${src}`)), { once: true });
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = src;
+        Object.entries(attrs).forEach(([key, value]) => {
+            script.setAttribute(key, value);
+        });
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Failed to load script ${src}`));
+        document.body.appendChild(script);
+    });
+}
+
+async function loadPdfBundle() {
+    let lastError;
+    for (const src of HTML2PDF_SOURCES) {
+        try {
+            await loadExternalScript(src, { 'data-html2pdf': 'dynamic', crossorigin: 'anonymous', referrerpolicy: 'no-referrer' });
+            if (typeof window.html2pdf !== 'undefined') {
+                return;
+            }
+        } catch (error) {
+            console.error(`Unable to load html2pdf bundle from ${src}`, error);
+            lastError = error;
+        }
+    }
+    throw lastError || new Error('Unable to load html2pdf bundle from known CDNs.');
+}
+
+async function ensurePdfEngine() {
+    if (typeof window.html2pdf !== 'undefined') {
+        return;
+    }
+
+    if (!html2pdfLoaderPromise) {
+        html2pdfLoaderPromise = loadPdfBundle()
+            .catch((error) => {
+                html2pdfLoaderPromise = null;
+                throw error;
+            });
+    }
+
+    await html2pdfLoaderPromise;
+
+    if (typeof window.html2pdf === 'undefined') {
+        throw new Error('html2pdf bundle loaded but window.html2pdf is unavailable');
+    }
+}
+
+// ============================================
 // Premium Template Collection
 // ============================================
 const templates = [
@@ -769,7 +839,7 @@ function createPurpleRow(label, value) {
 // ============================================
 let selectedTemplate = 0;
 let profilePhoto = defaultPhoto;
-let removedFields = new Set(); // Track removed fields
+let removedFields = new Set();
 
 // ============================================
 // Field Management
@@ -799,11 +869,10 @@ function restoreField(fieldName) {
 // ============================================
 function getFormData() {
     const getValue = (id) => {
-        // Return empty if field is removed
         if (isFieldRemoved(id)) return '';
         return document.getElementById(id)?.value || '';
     };
-    
+
     return {
         photo: isFieldRemoved('photo') ? defaultPhoto : profilePhoto,
         fullName: getValue('fullName'),
@@ -838,6 +907,197 @@ function getFormData() {
     };
 }
 
+function hasUserInput(data) {
+    const photoProvided = !isFieldRemoved('photo') && profilePhoto !== defaultPhoto;
+    if (photoProvided) return true;
+
+    return Object.entries(data).some(([key, value]) => {
+        if (key === 'photo') return false;
+        if (typeof value === 'string') {
+            return value.trim().length > 0;
+        }
+        return Boolean(value);
+    });
+}
+
+function getRenderableData() {
+    const formData = getFormData();
+    if (hasUserInput(formData)) {
+        return formData;
+    }
+    return { ...sampleData };
+}
+
+// ============================================
+// PDF Download
+// ============================================
+const PDF_LOADER_ID = 'pdfDownloadOverlay';
+
+function togglePdfLoader(show) {
+    let overlay = document.getElementById(PDF_LOADER_ID);
+    if (show) {
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = PDF_LOADER_ID;
+            Object.assign(overlay.style, {
+                position: 'fixed',
+                inset: '0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(15, 23, 42, 0.45)',
+                zIndex: '9999',
+                backdropFilter: 'blur(1px)'
+            });
+            overlay.innerHTML = `
+                <div style="background:#fff;padding:18px 28px;border-radius:14px;box-shadow:0 20px 45px rgba(15,23,42,0.25);display:flex;flex-direction:column;align-items:center;gap:10px;min-width:220px;">
+                    <div style="width:26px;height:26px;border-radius:50%;border:3px solid rgba(15,23,42,0.15);border-top-color:#6366f1;animation:pdfSpin 0.8s linear infinite;"></div>
+                    <p style="margin:0;font-size:14px;font-weight:600;color:#0f172a;">Preparing your PDF...</p>
+                </div>
+                <style>
+                    @keyframes pdfSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                </style>
+            `;
+        }
+        document.body.appendChild(overlay);
+    } else if (overlay?.parentNode) {
+        overlay.remove();
+    }
+}
+
+function createPdfDocument(data) {
+    const wrapper = document.createElement('div');
+    Object.assign(wrapper.style, {
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        width: '210mm',
+        minHeight: '297mm',
+        background: '#ffffff',
+        zIndex: '9998', // Behind the loader overlay (9999) but on-screen for html2canvas
+        pointerEvents: 'none',
+        overflow: 'hidden'
+    });
+
+    const paperNode = document.createElement('div');
+    paperNode.className = 'biodata-paper';
+    paperNode.style.width = '210mm';
+    paperNode.style.maxWidth = '210mm';
+    paperNode.style.minHeight = '297mm';
+    paperNode.style.boxShadow = 'none';
+    paperNode.style.margin = '0';
+    paperNode.style.background = '#ffffff';
+
+    renderTemplateInto(paperNode, data);
+
+    wrapper.appendChild(paperNode);
+    document.body.appendChild(wrapper);
+
+    return { wrapper, paperNode };
+}
+
+function handleDownload() {
+    const paper = document.getElementById('biodataPaper');
+    if (!paper) return;
+
+    const printWindow = window.open('', '_blank', 'width=800,height=1000');
+    if (!printWindow) {
+        alert('Please allow popups to download PDF');
+        return;
+    }
+
+    const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Marriage Biodata - ${getFormData().fullName || 'Biodata'}</title>
+            <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+            <style>
+                * { 
+                    box-sizing: border-box;
+                    margin: 0;
+                    padding: 0;
+                }
+                html, body {
+                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                    color-adjust: exact !important;
+                }
+                body {
+                    background: #fff;
+                }
+                @page {
+                    margin: 0;
+                    size: A4 portrait;
+                }
+                @media print {
+                    html, body {
+                        width: 210mm;
+                        height: 297mm;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                        color-adjust: exact !important;
+                    }
+                }
+                /* Ensure all backgrounds print */
+                * {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
+                /* Biodata container */
+                .biodata-wrapper {
+                    position: relative;
+                    width: 210mm;
+                    min-height: 297mm;
+                    margin: 0 auto;
+                    padding-bottom: 32px;
+                }
+                /* Watermark styling */
+                .persistent-watermark {
+                    position: absolute;
+                    right: 12px;
+                    bottom: 8px;
+                    z-index: 100;
+                    opacity: 0.85;
+                    font-size: 9px;
+                    font-weight: 500;
+                    color: #888;
+                    background: rgba(255,255,255,0.95);
+                    padding: 3px 8px;
+                    border-radius: 4px;
+                    white-space: nowrap;
+                    letter-spacing: 0.3px;
+                }
+                .persistent-watermark a {
+                    color: #0070f3;
+                    text-decoration: none;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="biodata-wrapper">
+                ${paper.innerHTML}
+            </div>
+            <script>
+                // Wait for fonts to load then print
+                document.fonts.ready.then(function() {
+                    setTimeout(function() {
+                        window.print();
+                        setTimeout(function() {
+                            window.close();
+                        }, 500);
+                    }, 300);
+                });
+            <\/script>
+        </body>
+        </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+}
+
 // ============================================
 // Template Rendering
 // ============================================
@@ -855,26 +1115,31 @@ function renderTemplateThumbnails() {
     // Add click handlers
     container.querySelectorAll('.template-thumb-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            selectedTemplate = parseInt(btn.dataset.idx);
+            selectedTemplate = parseInt(btn.dataset.idx, 10);
             renderTemplateThumbnails();
             renderPreview();
         });
     });
 }
 
-function renderPreview() {
-    const paper = document.getElementById('biodataPaper');
-    if (!paper) return;
-    
-    const data = getFormData();
-    paper.innerHTML = templates[selectedTemplate].render(data);
-    
-    // Add persistent watermark at bottom right
+function renderTemplateInto(target, data) {
+    if (!target) return target;
+
+    target.innerHTML = templates[selectedTemplate].render(data);
+
     const watermark = document.createElement('div');
     watermark.className = 'persistent-watermark';
     watermark.innerHTML = 'Created by <a href="https://biodata-pro.in" target="_blank" rel="noopener noreferrer">biodata-pro.in</a>';
-    paper.appendChild(watermark);
+    target.appendChild(watermark);
 
+    return target;
+}
+
+function renderPreview() {
+    const paper = document.getElementById('biodataPaper');
+    if (!paper) return;
+
+    renderTemplateInto(paper, getRenderableData());
     schedulePreviewScale();
 }
 
@@ -1057,109 +1322,6 @@ function switchToTab(tabName) {
 }
 
 // ============================================
-// PDF Download
-// ============================================
-function handleDownload() {
-    const paper = document.getElementById('biodataPaper');
-    if (!paper) return;
-    
-    const printWindow = window.open('', '_blank', 'width=800,height=1000');
-    if (!printWindow) {
-        alert('Please allow popups to download PDF');
-        return;
-    }
-    
-    const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Marriage Biodata - ${getFormData().fullName || 'Biodata'}</title>
-            <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
-            <style>
-                * { 
-                    box-sizing: border-box; 
-                    margin: 0; 
-                    padding: 0; 
-                }
-                html, body {
-                    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-                    -webkit-print-color-adjust: exact !important;
-                    print-color-adjust: exact !important;
-                    color-adjust: exact !important;
-                }
-                body {
-                    background: #fff;
-                }
-                @page { 
-                    margin: 0; 
-                    size: A4 portrait;
-                }
-                @media print {
-                    html, body {
-                        width: 210mm;
-                        height: 297mm;
-                        -webkit-print-color-adjust: exact !important;
-                        print-color-adjust: exact !important;
-                        color-adjust: exact !important;
-                    }
-                }
-                /* Ensure all backgrounds print */
-                * {
-                    -webkit-print-color-adjust: exact !important;
-                    print-color-adjust: exact !important;
-                }
-                
-                /* PDF Container */
-                .pdf-content {
-                    position: relative;
-                    min-height: 100%;
-                }
-                
-                /* Persistent Watermark for PDF */
-                .persistent-watermark {
-                    position: fixed;
-                    right: 12px;
-                    bottom: 12px;
-                    z-index: 100;
-                    opacity: 0.9;
-                    font-size: 10px;
-                    font-weight: 500;
-                    color: #666;
-                    background: rgba(255,255,255,0.92);
-                    padding: 2px 6px;
-                    border-radius: 3px;
-                    white-space: nowrap;
-                    -webkit-print-color-adjust: exact !important;
-                    print-color-adjust: exact !important;
-                }
-                .persistent-watermark a {
-                    color: #0070f3;
-                    text-decoration: none;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="pdf-content">${paper.innerHTML}</div>
-            <script>
-                // Wait for fonts to load then print
-                document.fonts.ready.then(function() {
-                    setTimeout(function() {
-                        window.print();
-                        setTimeout(function() {
-                            window.close();
-                        }, 500);
-                    }, 300);
-                });
-            </script>
-        </body>
-        </html>
-    `;
-    
-    printWindow.document.write(htmlContent);
-    printWindow.document.close();
-}
-
-// ============================================
 // Initialization
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
@@ -1313,7 +1475,7 @@ function validateContactInfo() {
     if (!phoneInput) return true;
 
     const phone = phoneInput.value.trim();
-    if (!phoneRegex.test(phone)) {
+    if (phone && !phoneRegex.test(phone)) {
         phoneInput.setCustomValidity('Enter a valid mobile number (10-13 digits).');
         phoneInput.reportValidity();
         return false;

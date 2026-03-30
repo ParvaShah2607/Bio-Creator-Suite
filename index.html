@@ -181,15 +181,28 @@
                 <a href="#features">Features</a>
                 <a href="#templates">Templates</a>
                 <a href="#how-it-works">How It Works</a>
+                <a href="./wedding-card.html" class="nav-link-special">Wedding Cards ↗</a>
                 <a href="#create" class="nav-cta">Create Now</a>
             </div>
-            <button class="mobile-menu-btn" id="mobileMenuBtn">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">
+                <svg class="menu-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="3" y1="12" x2="21" y2="12"/>
                     <line x1="3" y1="6" x2="21" y2="6"/>
                     <line x1="3" y1="18" x2="21" y2="18"/>
                 </svg>
+                <svg class="close-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
             </button>
+        </div>
+        <!-- Mobile Menu Overlay -->
+        <div class="mobile-menu" id="mobileMenu">
+            <a href="#features" class="mobile-menu-link">Features</a>
+            <a href="#templates" class="mobile-menu-link">Templates</a>
+            <a href="#how-it-works" class="mobile-menu-link">How It Works</a>
+            <a href="./wedding-card.html" class="mobile-menu-link mobile-link-special">Wedding Cards ↗</a>
+            <a href="#create" class="mobile-menu-cta">Create Now</a>
         </div>
     </nav>
 
@@ -492,15 +505,15 @@
                             </div>
                             
                             <div class="form-row">
-                                <div class="form-group" data-field="fullName" data-mandatory="true">
-                                    <label for="fullName">Full Name <span class="required">*</span></label>
+                                <div class="form-group" data-field="fullName">
+                                    <label for="fullName">Full Name</label>
                                     <input type="text" id="fullName" placeholder="Enter your full name">
                                 </div>
                             </div>
                             
                             <div class="form-row two-col">
-                                <div class="form-group" data-field="dob" data-mandatory="true">
-                                    <label for="dob">Date of Birth <span class="required">*</span></label>
+                                <div class="form-group" data-field="dob">
+                                    <label for="dob">Date of Birth</label>
                                     <input type="date" id="dob">
                                 </div>
                                 <div class="form-group" data-field="age">
@@ -853,16 +866,13 @@
                             </div>
                             
                             <div class="form-row two-col">
-                                <div class="form-group" data-field="contactNumber" data-mandatory="true">
-                                    <label for="contactNumber">Contact Number <span class="required">*</span></label>
-                                    <input type="tel"
-                                           id="contactNumber"
-                                           placeholder="+91 98765 43210"
-                                           required
-                                           inputmode="tel"
-                                           maxlength="15"
-                                           pattern="^\+?[0-9\s-]{10,13}$"
-                                           title="Enter a valid mobile number (10-13 digits, optional +, spaces or hyphen).">
+                                <div class="form-group" data-field="contactNumber">
+                                    <label for="contactNumber">Contact Number</label>
+                                     <input type="tel"
+                                         id="contactNumber"
+                                         placeholder="+91 98765 43210"
+                                         inputmode="tel"
+                                         maxlength="15">
                                 </div>
                                 <div class="form-group" data-field="email">
                                     <div class="field-label-row">
@@ -871,12 +881,10 @@
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                         </button>
                                     </div>
-                                    <input type="email"
-                                           id="email"
-                                           placeholder="email@example.com"
-                                           inputmode="email"
-                                           pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$"
-                                           title="Enter a valid email address like name@example.com.">
+                                     <input type="email"
+                                         id="email"
+                                         placeholder="email@example.com"
+                                         inputmode="email">
                                 </div>
                             </div>
                             
@@ -1163,6 +1171,36 @@
         </div>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"
+        crossorigin="anonymous"
+        referrerpolicy="no-referrer"
+        data-html2pdf="primary"></script>
     <script src="./script.js"></script>
+    <script>
+        // Mobile Menu Toggle
+        (function() {
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const menuIcon = mobileMenuBtn.querySelector('.menu-icon');
+            const closeIcon = mobileMenuBtn.querySelector('.close-icon');
+            
+            mobileMenuBtn.addEventListener('click', function() {
+                const isOpen = mobileMenu.classList.toggle('active');
+                menuIcon.style.display = isOpen ? 'none' : 'block';
+                closeIcon.style.display = isOpen ? 'block' : 'none';
+                document.body.style.overflow = isOpen ? 'hidden' : '';
+            });
+            
+            // Close menu when clicking a link
+            mobileMenu.querySelectorAll('a').forEach(function(link) {
+                link.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                    menuIcon.style.display = 'block';
+                    closeIcon.style.display = 'none';
+                    document.body.style.overflow = '';
+                });
+            });
+        })();
+    </script>
 </body>
 </html>
