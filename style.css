@@ -880,6 +880,30 @@ body {
     border-bottom: 1px solid var(--border-form);
 }
 
+.language-control {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.language-control label {
+    color: var(--text-dark-secondary);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.language-control select {
+    min-width: 160px;
+    padding: 9px 12px;
+    border: 1px solid var(--border-form);
+    border-radius: var(--radius-sm);
+    background: #ffffff;
+    color: var(--text-dark);
+    font: 600 0.9rem var(--font-secondary);
+}
+
 .form-tabs {
     display: flex;
     gap: 8px;
@@ -1672,6 +1696,15 @@ body {
     
     .mobile-menu-btn {
         display: block;
+    }
+
+    .language-control {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .language-control select {
+        width: 100%;
     }
     
     .hero {
