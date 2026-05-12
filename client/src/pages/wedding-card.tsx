@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import html2canvas from "html2canvas";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -99,13 +100,70 @@ function WeddingCardPreview({
   );
 }
 
-export default function WeddingCard() {
   const [groomName, setGroomName] = useState("");
   const [brideName, setBrideName] = useState("");
   const [weddingDate, setWeddingDate] = useState("");
   const [venue, setVenue] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("elegant");
   const [message, setMessage] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  // Responsive check
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 1024;
+
+  async function handleDownloadPNG() {
+    const node = previewRef.current;
+    if (!node) return alert("Preview not found");
+    try {
+      const canvas = await html2canvas(node, { backgroundColor: null, useCORS: true, scale: 2 });
+      const url = canvas.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Wedding-Card.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (e) {
+      alert("Download failed. Please try again.");
+    }
+  }
+
+  async function handleDownloadPDF() {
+    const node = previewRef.current;
+    if (!node) return alert("Preview not found");
+    
+    try {
+      // For wedding cards, we'll use html2pdf for both mobile and desktop
+      // since the card is already a custom component
+      const { jsPDF } = await import('jspdf');
+      const html2canvas_ = html2canvas;
+      
+      const canvas = await html2canvas_(node, {
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        scale: 2,
+        logging: false
+      });
+      
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const imgWidth = 150; // A5 width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a5'
+      });
+      
+      pdf.addImage(imgData, 'JPEG', 5, 5, imgWidth, imgHeight);
+      pdf.save(`Wedding-Card-${groomName}-${brideName}.pdf`);
+    } catch (e) {
+      console.error('PDF download failed:', e);
+      alert("PDF download failed. Trying PNG download instead...");
+      handleDownloadPNG();
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-white to-amber-50">
@@ -136,6 +194,45 @@ export default function WeddingCard() {
             Choose from elegant templates and customize every detail.
           </p>
         </div>
+
+        {/* Mobile: Show Preview button and modal */}
+        {isMobile && (
+          <div className="mb-6 flex flex-col items-center">
+            <button
+              className="bg-primary text-white px-6 py-2 rounded-full font-semibold shadow mb-4"
+              onClick={() => setShowPreview(true)}
+            >
+              Show Preview
+            </button>
+            {showPreview && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+                <div className="bg-white rounded-2xl shadow-lg p-4 max-w-sm w-full relative">
+                  <button
+                    className="absolute top-2 right-2 text-gray-400 hover:text-gray-700"
+                    onClick={() => setShowPreview(false)}
+                    aria-label="Close preview"
+                  >
+                    ×
+                  </button>
+                  <WeddingCardPreview
+                    groomName={groomName}
+                    brideName={brideName}
+                    weddingDate={weddingDate}
+                    venue={venue}
+                    template={selectedTemplate}
+                    ref={previewRef}
+                  />
+                  <button
+                    className="mt-4 w-full bg-primary text-white py-2 rounded-lg font-semibold"
+                    onClick={handleDownloadPNG}
+                  >
+                    Download PNG
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Form Section */}
@@ -240,7 +337,7 @@ export default function WeddingCard() {
 
             {/* Actions */}
             <div className="flex gap-4">
-              <Button className="flex-1" size="lg">
+              <Button className="flex-1" size="lg" onClick={handleDownloadPDF}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="7,10 12,15 17,10" />
@@ -248,7 +345,7 @@ export default function WeddingCard() {
                 </svg>
                 Download PDF
               </Button>
-              <Button variant="outline" size="lg">
+              <Button variant="outline" size="lg" onClick={handleDownloadPNG}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mr-2">
                   <circle cx="18" cy="5" r="3" />
                   <circle cx="6" cy="12" r="3" />
@@ -256,28 +353,32 @@ export default function WeddingCard() {
                   <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
                   <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
                 </svg>
-                Share
+                Download PNG
               </Button>
             </div>
           </div>
 
-          {/* Preview Section */}
-          <div className="lg:sticky lg:top-24">
-            <div className="bg-white rounded-2xl shadow-lg p-8">
-              <h3 className="text-lg font-semibold mb-6 text-center text-gray-700">
-                Live Preview
-              </h3>
-              <div className="max-w-sm mx-auto">
-                <WeddingCardPreview 
-                  groomName={groomName}
-                  brideName={brideName}
-                  weddingDate={weddingDate}
-                  venue={venue}
-                  template={selectedTemplate}
-                />
+          {/* Preview Section (always visible on desktop, hidden on mobile if modal is open) */}
+          {!isMobile && (
+            <div className="lg:sticky lg:top-24">
+              <div className="bg-white rounded-2xl shadow-lg p-8">
+                <h3 className="text-lg font-semibold mb-6 text-center text-gray-700">
+                  Live Preview
+                </h3>
+                <div className="max-w-sm mx-auto">
+                  <div ref={previewRef}>
+                    <WeddingCardPreview 
+                      groomName={groomName}
+                      brideName={brideName}
+                      weddingDate={weddingDate}
+                      venue={venue}
+                      template={selectedTemplate}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </main>
 

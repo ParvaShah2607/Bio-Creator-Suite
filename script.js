@@ -932,8 +932,12 @@ function getRenderableData() {
 // PDF Download
 // ============================================
 const PDF_LOADER_ID = 'pdfDownloadOverlay';
+const MOBILE_PDF_BREAKPOINT = 768;
+const PDF_GENERATION_TIMEOUT_MS = 45000;
+const PDF_CAPTURE_WIDTH = 794;
+const PDF_CAPTURE_MIN_HEIGHT = 1123;
 
-function togglePdfLoader(show) {
+function togglePdfLoader(show, message = 'Preparing your PDF...') {
     let overlay = document.getElementById(PDF_LOADER_ID);
     if (show) {
         if (!overlay) {
@@ -952,7 +956,8 @@ function togglePdfLoader(show) {
             overlay.innerHTML = `
                 <div style="background:#fff;padding:18px 28px;border-radius:14px;box-shadow:0 20px 45px rgba(15,23,42,0.25);display:flex;flex-direction:column;align-items:center;gap:10px;min-width:220px;">
                     <div style="width:26px;height:26px;border-radius:50%;border:3px solid rgba(15,23,42,0.15);border-top-color:#6366f1;animation:pdfSpin 0.8s linear infinite;"></div>
-                    <p style="margin:0;font-size:14px;font-weight:600;color:#0f172a;">Preparing your PDF...</p>
+                    <p id="pdfDownloadMessage" style="margin:0;font-size:14px;font-weight:600;color:#0f172a;text-align:center;">Preparing your PDF...</p>
+                    <p style="margin:0;font-size:12px;color:#64748b;text-align:center;max-width:260px;">Keep this tab open while your file is created.</p>
                 </div>
                 <style>
                     @keyframes pdfSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
@@ -960,8 +965,19 @@ function togglePdfLoader(show) {
             `;
         }
         document.body.appendChild(overlay);
+        const messageNode = overlay.querySelector('#pdfDownloadMessage');
+        if (messageNode) {
+            messageNode.textContent = message;
+        }
     } else if (overlay?.parentNode) {
         overlay.remove();
+    }
+}
+
+function setPdfLoaderMessage(message) {
+    const messageNode = document.getElementById('pdfDownloadMessage');
+    if (messageNode) {
+        messageNode.textContent = message;
     }
 }
 
@@ -971,22 +987,28 @@ function createPdfDocument(data) {
         position: 'fixed',
         top: '0',
         left: '0',
-        width: '210mm',
-        minHeight: '297mm',
+        width: `${PDF_CAPTURE_WIDTH}px`,
+        minHeight: '0',
         background: '#ffffff',
-        zIndex: '9998', // Behind the loader overlay (9999) but on-screen for html2canvas
+        zIndex: '9998',
         pointerEvents: 'none',
-        overflow: 'hidden'
+        overflow: 'visible',
+        opacity: '1',
+        transform: 'translateZ(0)'
     });
 
     const paperNode = document.createElement('div');
     paperNode.className = 'biodata-paper';
-    paperNode.style.width = '210mm';
-    paperNode.style.maxWidth = '210mm';
-    paperNode.style.minHeight = '297mm';
+    paperNode.style.width = `${PDF_CAPTURE_WIDTH}px`;
+    paperNode.style.maxWidth = `${PDF_CAPTURE_WIDTH}px`;
+    paperNode.style.minHeight = '0';
     paperNode.style.boxShadow = 'none';
     paperNode.style.margin = '0';
     paperNode.style.background = '#ffffff';
+    paperNode.style.borderRadius = '0';
+    paperNode.style.overflow = 'visible';
+    paperNode.style.color = '#0f172a';
+    paperNode.style.fontFamily = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
 
     renderTemplateInto(paperNode, data);
 
@@ -996,9 +1018,221 @@ function createPdfDocument(data) {
     return { wrapper, paperNode };
 }
 
+function isMobilePdfFlow() {
+    return window.matchMedia(`(max-width: ${MOBILE_PDF_BREAKPOINT}px)`).matches ||
+        /Android|webOS|iPhone|iPad|iPod|Mobile|SamsungBrowser/i.test(navigator.userAgent);
+}
+
+function getPdfFileName(data) {
+    const name = (data.fullName || 'Marriage-Biodata')
+        .trim()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .slice(0, 70);
+
+    return `${name || 'Marriage-Biodata'}.pdf`;
+}
+
+function withTimeout(promise, timeoutMs, message) {
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+    });
+
+    return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timeoutId));
+}
+
+async function waitForPdfAssets(root) {
+    const images = Array.from(root.querySelectorAll('img'));
+    await Promise.all(images.map((img) => {
+        if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+
+        return new Promise((resolve) => {
+            const done = () => resolve();
+            img.addEventListener('load', done, { once: true });
+            img.addEventListener('error', done, { once: true });
+            setTimeout(done, 3000);
+        });
+    }));
+
+    if (document.fonts?.ready) {
+        await Promise.race([document.fonts.ready, wait(3000)]);
+    }
+
+    await nextFrame();
+    await wait(80);
+}
+
+async function preparePdfCapture(pdfDocument) {
+    await waitForPdfAssets(pdfDocument.paperNode);
+
+    const contentHeight = Math.max(
+        pdfDocument.paperNode.scrollHeight,
+        pdfDocument.paperNode.offsetHeight,
+        pdfDocument.paperNode.getBoundingClientRect().height
+    );
+    const captureHeight = Math.ceil(contentHeight);
+    pdfDocument.wrapper.style.height = `${captureHeight}px`;
+    pdfDocument.paperNode.style.height = 'auto';
+
+    await nextFrame();
+
+    const bounds = pdfDocument.paperNode.getBoundingClientRect();
+    if (!bounds.width || !bounds.height || !pdfDocument.paperNode.textContent.trim()) {
+        throw new Error('The biodata preview was not ready. Please try the download again.');
+    }
+
+    return captureHeight;
+}
+
+function triggerBlobDownload(blob, fileName) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.rel = 'noopener';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+function canvasHasVisibleContent(canvas) {
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) return true;
+
+    const stepX = Math.max(16, Math.floor(canvas.width / 24));
+    const stepY = Math.max(16, Math.floor(canvas.height / 32));
+
+    for (let y = 0; y < canvas.height; y += stepY) {
+        for (let x = 0; x < canvas.width; x += stepX) {
+            const [red, green, blue, alpha] = context.getImageData(x, y, 1, 1).data;
+            if (alpha > 0 && (red < 245 || green < 245 || blue < 245)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+function createPdfBlobFromCanvas(canvas) {
+    const { jsPDF } = window.jspdf || {};
+    if (!jsPDF) {
+        throw new Error('PDF engine is not ready. Please refresh and try again.');
+    }
+
+    const pdf = new jsPDF({
+        unit: 'mm',
+        format: 'a4',
+        orientation: 'portrait',
+        compress: true
+    });
+
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const imageHeight = (canvas.height * pageWidth) / canvas.width;
+    const imageData = canvas.toDataURL('image/jpeg', 0.92);
+
+    if (imageHeight > pageHeight) {
+        const fittedWidth = (canvas.width * pageHeight) / canvas.height;
+        const xOffset = (pageWidth - fittedWidth) / 2;
+        pdf.addImage(imageData, 'JPEG', xOffset, 0, fittedWidth, pageHeight, undefined, 'FAST');
+        return pdf.output('blob');
+    }
+
+    pdf.addImage(imageData, 'JPEG', 0, 0, pageWidth, imageHeight, undefined, 'FAST');
+    return pdf.output('blob');
+}
+
+async function createMobilePdfBlob(pdfDocument, html2canvasOptions) {
+    if (typeof window.html2canvas === 'function' && window.jspdf?.jsPDF) {
+        const canvas = await withTimeout(
+            window.html2canvas(pdfDocument.wrapper, html2canvasOptions),
+            PDF_GENERATION_TIMEOUT_MS,
+            'PDF preview generation took too long. Please try again after closing other tabs.'
+        );
+
+        if (!canvas.width || !canvas.height || !canvasHasVisibleContent(canvas)) {
+            throw new Error('The PDF preview rendered blank. Please try the download again.');
+        }
+
+        return createPdfBlobFromCanvas(canvas);
+    }
+
+    return withTimeout(
+        window.html2pdf().set({
+            margin: 0,
+            image: { type: 'jpeg', quality: 0.92 },
+            html2canvas: html2canvasOptions,
+            jsPDF: {
+                unit: 'mm',
+                format: 'a4',
+                orientation: 'portrait',
+                compress: true
+            },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        }).from(pdfDocument.wrapper).outputPdf('blob'),
+        PDF_GENERATION_TIMEOUT_MS,
+        'PDF generation took too long. Please try again after closing other tabs.'
+    );
+}
+
+async function handleMobilePdfDownload() {
+    const data = getRenderableData();
+    let pdfDocument;
+
+    try {
+        pdfDocument = createPdfDocument(data);
+        await nextFrame();
+        togglePdfLoader(true, 'Preparing biodata...');
+        await ensurePdfEngine();
+        const captureHeight = await preparePdfCapture(pdfDocument);
+
+        setPdfLoaderMessage('Generating PDF...');
+
+        const fileName = getPdfFileName(data);
+        const html2canvasOptions = {
+            scale: Math.min(1.45, window.devicePixelRatio || 1.25),
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            logging: false,
+            imageTimeout: 15000,
+            removeContainer: true,
+            scrollX: 0,
+            scrollY: 0,
+            width: PDF_CAPTURE_WIDTH,
+            height: captureHeight,
+            windowWidth: PDF_CAPTURE_WIDTH,
+            windowHeight: captureHeight
+        };
+
+        const blob = await createMobilePdfBlob(pdfDocument, html2canvasOptions);
+
+        setPdfLoaderMessage('Starting download...');
+        triggerBlobDownload(blob, fileName);
+        await wait(500);
+    } catch (error) {
+        console.error('Mobile PDF download failed:', error);
+        alert(error.message || 'PDF download failed. Please try again.');
+    } finally {
+        pdfDocument?.wrapper?.remove();
+        togglePdfLoader(false);
+    }
+}
+
 function handleDownload() {
     const paper = document.getElementById('biodataPaper');
     if (!paper) return;
+
+    if (isMobilePdfFlow()) {
+        handleMobilePdfDownload();
+        return;
+    }
 
     const printWindow = window.open('', '_blank', 'width=800,height=1000');
     if (!printWindow) {
