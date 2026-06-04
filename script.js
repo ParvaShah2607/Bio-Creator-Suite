@@ -477,7 +477,7 @@ function labelText(text) {
 }
 
 function withLocalizedTemplateText(html) {
-    return html
+    const localizeText = (text) => text
         .replaceAll('॥ श्री गणेशाय नमः ॥', t('ganeshInvocation'))
         .replaceAll('❀ श्री गणेशाय नमः ❀', t('floralGaneshInvocation'))
         .replaceAll('🌿 श्री गणेशाय नमः 🌿', t('natureGaneshInvocation'))
@@ -518,6 +518,22 @@ function withLocalizedTemplateText(html) {
         .replaceAll('Contact', t('contact'))
         .replaceAll('Address', t('address'))
         .replaceAll('Email', t('email'));
+
+    const template = document.createElement('template');
+    template.innerHTML = html;
+
+    const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_TEXT);
+    const textNodes = [];
+
+    while (walker.nextNode()) {
+        textNodes.push(walker.currentNode);
+    }
+
+    textNodes.forEach((node) => {
+        node.nodeValue = localizeText(node.nodeValue);
+    });
+
+    return template.innerHTML;
 }
 
 const pageContent = {
