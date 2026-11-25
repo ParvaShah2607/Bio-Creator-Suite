@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex">
+    <title>Marriage-Biodata</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        html, body { font-family: 'Inter', 'Nirmala UI', sans-serif; background: #fff; }
+        @page { margin: 0; size: A4 portrait; }
+        .biodata-wrapper { position: relative; width: 210mm; margin: 0 auto; }
+        .persistent-watermark {
+            position: absolute; right: 12px; bottom: 8px; z-index: 100;
+            opacity: .85; font-size: 9px; font-weight: 500; color: #888;
+            background: rgba(255,255,255,.95); padding: 3px 8px;
+            border-radius: 4px; white-space: nowrap; letter-spacing: .3px;
+        }
+        .persistent-watermark a { color: #0070f3; text-decoration: none; }
+        #printInstructions { padding: 24px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    <p id="printInstructions">Prepare your document in the <a href="./index.html#create">biodata creator</a>, then choose Print / Save as PDF.</p>
+    <div class="biodata-wrapper"></div>
+</body>
+</html>

@@ -36,6 +36,7 @@
     
     <!-- Styles -->
     <link rel="stylesheet" href="./style.css">
+    <link rel="stylesheet" href="./styles/clarity.css">
         <script type="application/ld+json">
         {
             "@context": "https://schema.org",
@@ -163,7 +164,8 @@
         }
         </script>
 </head>
-<body>
+<body class="clarity">
+    <a class="skip-link" href="#create" data-i18n="skip">Skip to biodata creator</a>
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
@@ -184,7 +186,7 @@
                 <a href="./wedding-card.html" class="nav-link-special">Wedding Cards ↗</a>
                 <a href="#create" class="nav-cta">Create Now</a>
             </div>
-            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu" aria-expanded="false" aria-controls="mobileMenu">
                 <svg class="menu-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="3" y1="12" x2="21" y2="12"/>
                     <line x1="3" y1="6" x2="21" y2="6"/>
@@ -201,6 +203,8 @@
             <a href="#features" class="mobile-menu-link">Features</a>
             <a href="#templates" class="mobile-menu-link">Templates</a>
             <a href="#how-it-works" class="mobile-menu-link">How It Works</a>
+            <a href="./wedding-card.html" class="mobile-menu-link" data-i18n="weddingCards">Wedding cards</a>
+            <a href="./privacy.html" class="mobile-menu-link" data-i18n="privacy">Privacy</a>
             <a href="#create" class="mobile-menu-cta">Create Now</a>
         </div>
     </nav>
@@ -255,41 +259,8 @@
             </div> -->
         </div>
         <div class="hero-visual">
-            <div class="preview-cards">
-                <div class="preview-card card-1">
-                    <div class="mini-template">
-                        <div class="mt-header"></div>
-                        <div class="mt-photo"></div>
-                        <div class="mt-lines">
-                            <div class="mt-line"></div>
-                            <div class="mt-line short"></div>
-                            <div class="mt-line"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="preview-card card-2">
-                    <div class="mini-template dark">
-                        <div class="mt-header"></div>
-                        <div class="mt-photo"></div>
-                        <div class="mt-lines">
-                            <div class="mt-line"></div>
-                            <div class="mt-line short"></div>
-                            <div class="mt-line"></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="preview-card card-3">
-                    <div class="mini-template gradient">
-                        <div class="mt-header"></div>
-                        <div class="mt-photo"></div>
-                        <div class="mt-lines">
-                            <div class="mt-line"></div>
-                            <div class="mt-line short"></div>
-                            <div class="mt-line"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <div class="hero-document-stage" aria-hidden="true"><div id="heroDocument"></div></div>
+            <p class="demo-label" data-i18n="demoLabel">Fictional example · 10 templates · 4 languages</p>
         </div>
     </section>
 
@@ -484,21 +455,27 @@
                                 </svg>
                                 <span>Contact</span>
                             </button>
+                            <button type="button" class="form-tab" data-tab="review"><span data-i18n="review">Design &amp; review</span></button>
                         </div>
+                        <p class="draft-notice" data-i18n="draftNotice">Your draft stays in this tab. No account or cloud storage. Export before you leave.</p>
+                        <button type="button" id="manageFields" class="btn btn-outline" data-manage-fields data-i18n="manageFields">Manage optional fields</button>
+                        <p id="hiddenCount" class="helper-text"></p>
+                        <button type="button" class="btn btn-outline mobile-preview-button" data-preview data-i18n="preview">Preview</button>
                     </div>
                     
-                    <form id="biodataForm" class="biodata-form">
+                    <form id="biodataForm" class="biodata-form" novalidate>
+                        <p class="optional-hint" data-i18n="optionalHint">Every field is optional. Share only what feels right.</p>
                         <!-- Personal Details Tab -->
                         <div class="form-tab-content active" id="personalTab">
                             <div class="form-group photo-upload-group" data-field="photo">
                                 <div class="field-label-row">
-                                    <label>Profile Photo</label>
+                                    <label for="photoInput">Profile Photo</label>
                                     <button type="button" class="field-remove-btn" title="Remove this field">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                     </button>
                                 </div>
-                                <div class="photo-upload" id="photoUploadArea">
-                                    <input type="file" id="photoInput" accept="image/*" hidden>
+                                <input type="file" id="photoInput" accept="image/*" hidden>
+                                <button type="button" class="photo-upload" id="photoUploadArea" aria-describedby="photoError">
                                     <div class="photo-placeholder" id="photoPlaceholder">
                                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                                             <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
@@ -506,10 +483,12 @@
                                             <polyline points="21 15 16 10 5 21"/>
                                         </svg>
                                         <span>Click to upload photo</span>
-                                        <small>JPG, PNG up to 10MB</small>
+                                        <small data-i18n="imageHint">Choose an image from your device. It stays in this tab.</small>
                                     </div>
-                                    <img id="photoPreview" class="photo-preview" src="" alt="Preview" style="display: none;">
-                                </div>
+                                    <img id="photoPreview" class="photo-preview" alt="Preview" hidden>
+                                </button>
+                                <button type="button" id="removePhoto" class="btn btn-outline" data-i18n="clearPhoto" hidden>Remove photo</button>
+                                <p id="photoError" class="field-error" role="alert"></p>
                             </div>
                             
                             <div class="form-row">
@@ -522,7 +501,7 @@
                             <div class="form-row two-col">
                                 <div class="form-group" data-field="dob">
                                     <label for="dob">Date of Birth</label>
-                                    <input type="date" id="dob">
+                                    <input type="date" id="dob" aria-describedby="ageHint">
                                 </div>
                                 <div class="form-group" data-field="age">
                                     <div class="field-label-row">
@@ -531,9 +510,10 @@
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                                         </button>
                                     </div>
-                                    <input type="number" id="age" placeholder="e.g. 25" min="18" max="99">
+                                    <input type="number" id="age" placeholder="e.g. 25" min="18" max="99" aria-describedby="ageHint">
                                 </div>
                             </div>
+                            <p id="ageHint" class="helper-text" data-i18n="ageHint">Age is calculated for ages 18–99. An empty or out-of-range birth date clears the calculated age.</p>
                             
                             <div class="form-row two-col">
                                 <div class="form-group" data-field="height">
@@ -947,20 +927,36 @@
                                 </button>
                             </div>
                         </div>
+                        <div class="form-tab-content" id="reviewTab" hidden>
+                            <p data-i18n="reviewHelp">Choose a design, check your details and included fields, then export.</p>
+                            <div id="reviewTemplates" class="review-templates"></div>
+                            <button type="button" class="btn btn-outline" data-manage-fields data-i18n="manageFields">Manage optional fields</button>
+                            <div class="form-tab-nav">
+                                <button type="button" class="btn btn-outline" data-prev="contact" data-i18n="previous">Previous</button>
+                                <button type="button" class="btn btn-primary" data-preview data-i18n="preview">Preview</button>
+                            </div>
+                            <button type="button" class="btn btn-primary" data-export><span data-i18n="downloadPdf">Download PDF</span></button>
+                        </div>
+                        <p id="creatorStatus" class="creator-status" role="status" aria-live="polite"></p>
                     </form>
                 </div>
+                <aside class="live-preview" aria-labelledby="documentPreviewTitle">
+                    <div class="preview-toolbar"><h3 id="documentPreviewTitle" data-i18n="documentPreview">Document preview</h3><button type="button" class="btn btn-outline" data-preview data-i18n="preview">Preview</button></div>
+                    <p id="selectedTemplateName"></p>
+                    <p class="empty-draft" data-i18n="emptyDraft">Your story starts here. Add any detail or photo to see your biodata.</p>
+                    <div id="inlinePreviewFrame" class="document-frame"><div id="inlinePaper" class="biodata-paper" hidden></div></div>
+                </aside>
             </div>
         </div>
     </section>
     </div>
 
     <!-- Template Modal -->
-    <div id="templateModal" class="modal">
-        <div class="modal-overlay"></div>
+    <dialog id="templateModal" class="modal" aria-labelledby="previewDialogTitle">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Preview Your Biodata</h3>
-                <button class="modal-close" id="closeModal">
+                <h3 id="previewDialogTitle" data-i18n="documentPreview">Document preview</h3>
+                <button type="button" class="modal-close" id="closeModal" aria-label="Back to editing">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"/>
                         <line x1="6" y1="6" x2="18" y2="18"/>
@@ -987,6 +983,7 @@
                 
                 <!-- Main: Preview Area -->
                 <div class="preview-main">
+                    <p class="empty-draft" data-i18n="emptyDraft">Your story starts here. Add any detail or photo to see your biodata.</p>
                     <div class="preview-wrapper">
                         <div class="preview-scale" id="previewScale">
                             <div id="biodataPaper" class="biodata-paper">
@@ -996,7 +993,7 @@
                     </div>
                     
                     <div class="preview-actions">
-                        <button id="downloadBtn" class="btn btn-primary btn-large">
+                        <button type="button" id="downloadBtn" class="btn btn-primary btn-large" data-export>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                                 <polyline points="7 10 12 15 17 10"/>
@@ -1004,17 +1001,24 @@
                             </svg>
                             <span>Download PDF</span>
                         </button>
+                        <p data-export-status role="status" aria-live="polite"></p>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </dialog>
+    <dialog id="fieldDialog" aria-labelledby="fieldDialogTitle" aria-describedby="fieldDialogHelp">
+        <div class="dialog-heading"><h2 id="fieldDialogTitle" data-i18n="manageFields">Manage optional fields</h2><button type="button" id="closeFields" class="btn btn-outline" data-i18n="close">Close</button></div>
+        <p id="fieldDialogHelp" data-i18n="fieldHelp">Choose what to include. Hiding a field keeps its value in this tab.</p>
+        <button type="button" id="includeAll" class="btn btn-outline" data-i18n="includeAll">Include all fields</button>
+        <div id="fieldChoices"></div>
+    </dialog>
 
     <!-- SEO Content Section -->
     <section class="seo-content" id="about">
         <div class="container">
             <article class="seo-article">
-                <h1 class="seo-main-title">Create Marriage Biodata Online Free - Download PDF Instantly</h1>
+                <h2 class="seo-main-title">Create Marriage Biodata Online Free - Download PDF Instantly</h2>
                 
                 <p class="seo-intro">Looking for the perfect <strong>marriage biodata format</strong>? You are in the right place! At <strong>biodata-pro.in</strong>, we offer a completely <strong>free marriage biodata maker</strong> that helps you create beautiful biodata for marriage in just a few minutes. No registration needed. No hidden charges. Just fill your details, pick a template, and download your <strong>marriage biodata format PDF</strong> instantly.</p>
 
@@ -1179,36 +1183,6 @@
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"
-        crossorigin="anonymous"
-        referrerpolicy="no-referrer"
-        data-html2pdf="primary"></script>
-    <script src="./script.js"></script>
-    <script>
-        // Mobile Menu Toggle
-        (function() {
-            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-            const mobileMenu = document.getElementById('mobileMenu');
-            const menuIcon = mobileMenuBtn.querySelector('.menu-icon');
-            const closeIcon = mobileMenuBtn.querySelector('.close-icon');
-            
-            mobileMenuBtn.addEventListener('click', function() {
-                const isOpen = mobileMenu.classList.toggle('active');
-                menuIcon.style.display = isOpen ? 'none' : 'block';
-                closeIcon.style.display = isOpen ? 'block' : 'none';
-                document.body.style.overflow = isOpen ? 'hidden' : '';
-            });
-            
-            // Close menu when clicking a link
-            mobileMenu.querySelectorAll('a').forEach(function(link) {
-                link.addEventListener('click', function() {
-                    mobileMenu.classList.remove('active');
-                    menuIcon.style.display = 'block';
-                    closeIcon.style.display = 'none';
-                    document.body.style.overflow = '';
-                });
-            });
-        })();
-    </script>
+    <script type="module" src="./script.js"></script>
 </body>
 </html>
